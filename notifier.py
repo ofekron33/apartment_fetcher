@@ -1,5 +1,6 @@
 import logging
 import sys
+from collections import Counter
 
 import httpx
 
@@ -41,29 +42,44 @@ def send_telegram(message: str, bot_token: str, chat_id: str) -> bool:
         return False
 
 
-def notify(scored_listings: list[ScoredListing], config: dict) -> int:
-    """Send Telegram notifications for each scored listing.
+def _build_header(scored_listings: list[ScoredListing], use_emoji: bool) -> str:
+    """Build a digest header message summarizing the batch."""
+    total = len(scored_listings)
+    source_counts = Counter(sl.listing.source for sl in scored_listings)
+    scores = [sl.score for sl in scored_listings]
+    min_score, max_score = min(scores), max(scores)
 
-    Returns the number of messages successfully sent.
+    icon = "\U0001f4e8" if use_emoji else "[DIGEST]"  # envelope emoji
+
+    lines = [f"{icon} <b>{total} new listing{'s' if total != 1 else ''} found</b>"]
+
+    source_parts = []
+    for source in ["yad2", "4kirot"]:
+        count = source_counts.get(source, 0)
+        if count:
+            source_parts.append(f"{source.capitalize()}: {count}")
+    if source_parts:
+        lines.append("Sources: " + ", ".join(source_parts))
+
+    if min_score == max_score:
+        lines.append(f"Score: {min_score}")
+    else:
+        lines.append(f"Score range: {min_score}\u2013{max_score}")
+
+    return "\n".join(lines)
+
+
+def send_digest(scored_listings: list[ScoredListing], bot_token: str, chat_id: str) -> int:
+    """Send a header message followed by individual listing messages.
+
+    Returns the number of listing messages successfully sent.
     """
-    tg = config.get("telegram", {})
-    bot_token = tg.get("bot_token", "")
-    chat_id = tg.get("chat_id", "")
+    # Send header
+    header = _build_header(scored_listings, use_emoji=True)
+    if not send_telegram(header, bot_token, chat_id):
+        logger.error("Failed to send digest header")
 
-    if not bot_token or bot_token == "YOUR_BOT_TOKEN_HERE":
-        logger.warning("Telegram bot token not configured, printing to console only")
-        for sl in scored_listings:
-            _safe_print(sl.format_message(use_emoji=False))
-            _safe_print("-" * 40)
-        return 0
-
-    if not chat_id or chat_id == "YOUR_CHAT_ID_HERE":
-        logger.warning("Telegram chat_id not configured, printing to console only")
-        for sl in scored_listings:
-            _safe_print(sl.format_message(use_emoji=False))
-            _safe_print("-" * 40)
-        return 0
-
+    # Send individual listings
     sent = 0
     for sl in scored_listings:
         message = sl.format_message(use_emoji=True)
@@ -73,3 +89,33 @@ def notify(scored_listings: list[ScoredListing], config: dict) -> int:
         else:
             logger.error("Failed to notify for listing %s", sl.listing.id)
     return sent
+
+
+def notify(scored_listings: list[ScoredListing], config: dict) -> int:
+    """Send Telegram notifications: a digest header followed by each listing.
+
+    Returns the number of listing messages successfully sent.
+    """
+    tg = config.get("telegram", {})
+    bot_token = tg.get("bot_token", "")
+    chat_id = tg.get("chat_id", "")
+
+    if not bot_token or bot_token == "YOUR_BOT_TOKEN_HERE":
+        logger.warning("Telegram bot token not configured, printing to console only")
+        _safe_print(_build_header(scored_listings, use_emoji=False))
+        _safe_print("=" * 40)
+        for sl in scored_listings:
+            _safe_print(sl.format_message(use_emoji=False))
+            _safe_print("-" * 40)
+        return 0
+
+    if not chat_id or chat_id == "YOUR_CHAT_ID_HERE":
+        logger.warning("Telegram chat_id not configured, printing to console only")
+        _safe_print(_build_header(scored_listings, use_emoji=False))
+        _safe_print("=" * 40)
+        for sl in scored_listings:
+            _safe_print(sl.format_message(use_emoji=False))
+            _safe_print("-" * 40)
+        return 0
+
+    return send_digest(scored_listings, bot_token, chat_id)

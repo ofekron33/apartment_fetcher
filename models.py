@@ -1,5 +1,6 @@
 import math
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Optional
 
 # Dizengoff Square, Tel Aviv
@@ -16,6 +17,34 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
          + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
          * math.sin(dlon / 2) ** 2)
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _relative_time(iso_str: str) -> str:
+    """Convert an ISO datetime string to a human-readable relative time."""
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        delta = now - dt
+        seconds = int(delta.total_seconds())
+        if seconds < 0:
+            return "just now"
+        if seconds < 60:
+            return "just now"
+        minutes = seconds // 60
+        if minutes < 60:
+            return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+        hours = minutes // 60
+        if hours < 24:
+            return f"{hours} hour{'s' if hours != 1 else ''} ago"
+        days = hours // 24
+        if days < 30:
+            return f"{days} day{'s' if days != 1 else ''} ago"
+        months = days // 30
+        return f"{months} month{'s' if months != 1 else ''} ago"
+    except (ValueError, TypeError):
+        return iso_str[:10] if len(iso_str) >= 10 else iso_str
 
 
 @dataclass
@@ -68,7 +97,7 @@ class Listing:
         if self.entrance_date:
             parts.append(f"Entrance: {self.entrance_date[:10]}")
         if self.created_at:
-            parts.append(f"Posted: {self.created_at[:10]}")
+            parts.append(f"Posted: {_relative_time(self.created_at)}")
         if self.updated_at:
             parts.append(f"Updated: {self.updated_at[:10]}")
         if self.ends_at:

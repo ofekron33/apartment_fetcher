@@ -9,6 +9,7 @@ First-time setup: run setup_token.py once to save your token.
 import json
 import logging
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 import requests
 
@@ -70,28 +71,54 @@ def fetch_apartments(id_token):
         return None
 
 
-def load_seen_ids() -> set[str]:
-    """Load previously seen 4kirot listing IDs from disk."""
+DEFAULT_MAX_AGE_DAYS = 30
+
+
+def _prune_expired(seen: dict[str, str], max_age_days: int) -> dict[str, str]:
+    """Remove entries older than max_age_days from the seen dict."""
+    cutoff = (date.today() - timedelta(days=max_age_days)).isoformat()
+    before = len(seen)
+    pruned = {id_: first_seen for id_, first_seen in seen.items() if first_seen >= cutoff}
+    removed = before - len(pruned)
+    if removed:
+        logger.info("4kirot: pruned %d expired entries from seen state (older than %d days)", removed, max_age_days)
+    return pruned
+
+
+def load_seen_ids(max_age_days: int = DEFAULT_MAX_AGE_DAYS) -> dict[str, str]:
+    """Load previously seen 4kirot listing IDs from disk as {id: first_seen_date}.
+
+    Backward-compatible: if the file contains a list, converts to dict with today's date.
+    Auto-prunes entries older than max_age_days.
+    """
     if not SEEN_FILE.exists():
-        return set()
+        return {}
     try:
         data = json.loads(SEEN_FILE.read_text(encoding="utf-8"))
-        return set(data)
     except (json.JSONDecodeError, TypeError) as e:
         logger.error("Failed to load seen 4kirot listings: %s", e)
-        return set()
+        return {}
+    # Backward compatibility: convert list format to dict
+    if isinstance(data, list):
+        today = date.today().isoformat()
+        data = {str(id_): today for id_ in data}
+        logger.info("Migrated seen_4kirot.json from list to dict format (%d entries)", len(data))
+    return _prune_expired(data, max_age_days)
 
 
-def save_seen_ids(ids: set[str]) -> None:
-    """Persist seen 4kirot listing IDs to disk."""
-    SEEN_FILE.write_text(json.dumps(sorted(ids), ensure_ascii=False), encoding="utf-8")
+def save_seen_ids(ids: dict[str, str]) -> None:
+    """Persist seen 4kirot listing IDs to disk as {id: first_seen_date}."""
+    SEEN_FILE.write_text(json.dumps(ids, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def filter_new(apartments: list[dict]) -> list[dict]:
     """Return only apartments we haven't seen before, and mark them as seen."""
     seen = load_seen_ids()
     new_apartments = [a for a in apartments if a["post_id"] not in seen]
-    seen.update(a["post_id"] for a in apartments)
+    today = date.today().isoformat()
+    for a in apartments:
+        if a["post_id"] not in seen:
+            seen[a["post_id"]] = today
     save_seen_ids(seen)
     if new_apartments:
         logger.info("4kirot: %d new listings (%d total seen)", len(new_apartments), len(seen))

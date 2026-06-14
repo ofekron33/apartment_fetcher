@@ -263,7 +263,7 @@ def run() -> None:
         if expired_ids:
             seen = load_seen_ids()
             for eid in expired_ids:
-                seen.discard(eid)
+                seen.pop(eid, None)
             save_seen_ids(seen)
             logger.info("Unmarked %d expired listings from seen state", len(expired_ids))
 
