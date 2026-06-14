@@ -12,7 +12,7 @@ from scraper import scrape, create_session, fetch_page, fetch_listing_details, s
 from parser import parse_listings, extract_pagination_info
 from state import load_seen_ids, save_seen_ids, load_resume_page, save_resume_page, filter_new
 from scorer import filter_and_score
-from notifier import notify
+from notifier import notify, send_heartbeat
 from fetch_apartments import (
     get_id_token,
     fetch_apartments as fetch_4kirot,
@@ -216,6 +216,7 @@ def run() -> None:
 
     if not all_new:
         logger.info("No new listings from any source")
+        send_heartbeat(config, len(yad2_new), len(kirot_new), notified=0)
         return
     logger.info("Total new listings across all sources: %d (Yad2: %d, 4kirot: %d)",
                 len(all_new), len(yad2_new), len(kirot_new))
@@ -224,6 +225,7 @@ def run() -> None:
     scored = filter_and_score(all_new, config)
     if not scored:
         logger.info("All new listings filtered out by hard filters")
+        send_heartbeat(config, len(yad2_new), len(kirot_new), notified=0)
         return
     logger.info("%d listings passed filters, top score: %d", len(scored), scored[0].score)
 
@@ -272,6 +274,7 @@ def run() -> None:
 
     if not scored:
         logger.info("All scored listings were expired")
+        send_heartbeat(config, len(yad2_new), len(kirot_new), notified=0)
         return
 
     # Notify
@@ -280,6 +283,8 @@ def run() -> None:
         logger.info("Sent %d Telegram notifications", sent)
     else:
         logger.info("Notifications printed to console (Telegram not configured or send failed)")
+
+    send_heartbeat(config, len(yad2_new), len(kirot_new), notified=sent)
 
 
 if __name__ == "__main__":

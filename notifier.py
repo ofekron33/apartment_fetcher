@@ -1,6 +1,7 @@
 import logging
 import sys
 from collections import Counter
+from datetime import datetime, timezone
 
 import httpx
 
@@ -119,3 +120,29 @@ def notify(scored_listings: list[ScoredListing], config: dict) -> int:
         return 0
 
     return send_digest(scored_listings, bot_token, chat_id)
+
+
+def send_heartbeat(config: dict, yad2_count: int, kirot_count: int, notified: int) -> None:
+    """Send a short status ping after every run so you know the bot is alive."""
+    tg = config.get("telegram", {})
+    bot_token = tg.get("bot_token", "")
+    chat_id = tg.get("chat_id", "")
+
+    if not bot_token or bot_token == "YOUR_BOT_TOKEN_HERE":
+        return
+    if not chat_id or chat_id == "YOUR_CHAT_ID_HERE":
+        return
+
+    now = datetime.now(timezone.utc).strftime("%H:%M UTC")
+    total_new = yad2_count + kirot_count
+
+    if notified > 0:
+        # Already sent listing messages — no extra heartbeat needed
+        return
+
+    if total_new == 0:
+        msg = f"\u2705 {now} — no new listings"
+    else:
+        msg = f"\u2705 {now} — {total_new} new (all filtered out)"
+
+    send_telegram(msg, bot_token, chat_id)
