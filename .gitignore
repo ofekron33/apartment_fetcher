@@ -16,8 +16,9 @@ apartments.json
 __pycache__/
 *.pyc
 
-# IDE
+# IDE / tools
 .idea/
+.claude/
 
 # Virtual environment
 .venv/
