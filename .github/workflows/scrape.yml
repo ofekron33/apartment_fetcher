@@ -2,7 +2,8 @@ name: Apartment Scraper
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    # Backup cron — restarts the loop if it dies. Every 6 hours is enough.
+    - cron: "0 */6 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -12,6 +13,7 @@ concurrency:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    timeout-minutes: 350  # just under 6h
     steps:
       - name: Checkout main branch
         uses: actions/checkout@v4
@@ -42,49 +44,55 @@ jobs:
             echo '${{ secrets.FIREBASE_TOKEN_JSON }}' > firebase_token.json
           fi
 
-      - name: Run scraper
-        run: python main.py
-
-      - name: Save state files to state branch
+      - name: Scrape loop (every 15 min)
         run: |
           STATE_FILES="seen_listings.json seen_4kirot.json pagination_state.json cookies.pkl firebase_token.json"
+          ITERATIONS=23  # ~5h45m, stays under 6h timeout
+          INTERVAL=900   # 15 minutes
 
-          # Set up a temporary worktree for the state branch
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          save_state() {
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          TMPDIR=$(mktemp -d)
+            git fetch origin state --depth=1 2>/dev/null || true
+            TMPDIR=$(mktemp -d)
 
-          # Initialize state branch content
-          if git rev-parse --verify origin/state >/dev/null 2>&1; then
-            git worktree add "$TMPDIR" origin/state --detach
-            cd "$TMPDIR"
-            git checkout -B state
-          else
-            git worktree add --detach "$TMPDIR"
-            cd "$TMPDIR"
-            git checkout --orphan state
-            git rm -rf . 2>/dev/null || true
-          fi
+            if git rev-parse --verify origin/state >/dev/null 2>&1; then
+              git worktree add "$TMPDIR" origin/state --detach
+              cd "$TMPDIR"
+              git checkout -B state
+            else
+              git worktree add --detach "$TMPDIR"
+              cd "$TMPDIR"
+              git checkout --orphan state
+              git rm -rf . 2>/dev/null || true
+            fi
 
-          # Copy state files into worktree
-          for f in $STATE_FILES; do
-            if [ -f "$GITHUB_WORKSPACE/$f" ]; then
-              cp "$GITHUB_WORKSPACE/$f" "./$f"
-              git add "$f"
-              echo "  saved $f"
+            for f in $STATE_FILES; do
+              if [ -f "$GITHUB_WORKSPACE/$f" ]; then
+                cp "$GITHUB_WORKSPACE/$f" "./$f"
+                git add "$f"
+              fi
+            done
+
+            if git rev-parse HEAD >/dev/null 2>&1; then
+              git commit --amend -m "state: update $(date -u +%Y-%m-%dT%H:%M:%SZ)" --allow-empty
+            else
+              git commit -m "state: initial $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            fi
+
+            git push origin state --force
+            cd "$GITHUB_WORKSPACE"
+            git worktree remove "$TMPDIR" --force
+          }
+
+          for i in $(seq 1 $ITERATIONS); do
+            echo "=== Iteration $i/$ITERATIONS — $(date -u +%H:%M:%S) UTC ==="
+            python main.py || echo "Scraper exited with error (continuing)"
+            save_state
+            if [ "$i" -lt "$ITERATIONS" ]; then
+              echo "Sleeping ${INTERVAL}s until next run..."
+              sleep $INTERVAL
             fi
           done
-
-          # Single amend commit to avoid history bloat
-          if git rev-parse HEAD >/dev/null 2>&1; then
-            git commit --amend -m "state: update $(date -u +%Y-%m-%dT%H:%M:%SZ)" --allow-empty
-          else
-            git commit -m "state: initial $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          fi
-
-          git push origin state --force
-
-          # Cleanup
-          cd "$GITHUB_WORKSPACE"
-          git worktree remove "$TMPDIR" --force
+          echo "=== Loop complete ==="
