@@ -1,0 +1,90 @@
+name: Apartment Scraper
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: scraper
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Write config.json from secret
+        run: echo '${{ secrets.CONFIG_JSON }}' > config.json
+
+      - name: Restore state files from state branch
+        run: |
+          STATE_FILES="seen_listings.json seen_4kirot.json pagination_state.json cookies.pkl firebase_token.json"
+          git fetch origin state --depth=1 2>/dev/null || true
+          if git rev-parse --verify origin/state >/dev/null 2>&1; then
+            echo "State branch found, restoring files..."
+            for f in $STATE_FILES; do
+              git show "origin/state:$f" > "$f" 2>/dev/null && echo "  restored $f" || echo "  $f not in state branch"
+            done
+          else
+            echo "No state branch yet (first run). Seeding firebase_token.json from secret..."
+            echo '${{ secrets.FIREBASE_TOKEN_JSON }}' > firebase_token.json
+          fi
+
+      - name: Run scraper
+        run: python main.py
+
+      - name: Save state files to state branch
+        run: |
+          STATE_FILES="seen_listings.json seen_4kirot.json pagination_state.json cookies.pkl firebase_token.json"
+
+          # Set up a temporary worktree for the state branch
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          TMPDIR=$(mktemp -d)
+
+          # Initialize state branch content
+          if git rev-parse --verify origin/state >/dev/null 2>&1; then
+            git worktree add "$TMPDIR" origin/state --detach
+            cd "$TMPDIR"
+            git checkout -B state
+          else
+            git worktree add --detach "$TMPDIR"
+            cd "$TMPDIR"
+            git checkout --orphan state
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          # Copy state files into worktree
+          for f in $STATE_FILES; do
+            if [ -f "$GITHUB_WORKSPACE/$f" ]; then
+              cp "$GITHUB_WORKSPACE/$f" "./$f"
+              git add "$f"
+              echo "  saved $f"
+            fi
+          done
+
+          # Single amend commit to avoid history bloat
+          if git rev-parse HEAD >/dev/null 2>&1; then
+            git commit --amend -m "state: update $(date -u +%Y-%m-%dT%H:%M:%SZ)" --allow-empty
+          else
+            git commit -m "state: initial $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          fi
+
+          git push origin state --force
+
+          # Cleanup
+          cd "$GITHUB_WORKSPACE"
+          git worktree remove "$TMPDIR" --force

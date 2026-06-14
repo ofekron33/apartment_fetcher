@@ -1,0 +1,1343 @@
+<html class="dark" lang="he" dir="rtl" style="font-size: 100%;"><head><meta http-equiv="origin-trial" content="A7vZI3v+Gz7JfuRolKNM4Aff6zaGuT7X0mf3wtoZTnKv6497cVMnhy03KDqX7kBz/q/iidW7srW31oQbBt4VhgoAAACUeyJvcmlnaW4iOiJodHRwczovL3d3dy5nb29nbGUuY29tOjQ0MyIsImZlYXR1cmUiOiJEaXNhYmxlVGhpcmRQYXJ0eVN0b3JhZ2VQYXJ0aXRpb25pbmczIiwiZXhwaXJ5IjoxNzU3OTgwODAwLCJpc1N1YmRvbWFpbiI6dHJ1ZSwiaXNUaGlyZFBhcnR5Ijp0cnVlfQ==">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="icon" type="image/png" href="assets/fav.png">
+    <title>4kirot | מפת הדירות שעושה חיים קלים - מצאו את הבית הבא שלכם</title>
+    <meta name="description" content="מחפשים דירה להשכרה? אצלנו תמצאו את כל הדירות על גבי מפה אינטראקטיבית ונוחה. חיפוש חכם במרכז הארץ. היכנסו עכשיו והתחילו לסייר.">
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&amp;family=Playfair+Display:wght@700;800;900&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&amp;icon_names=accessibility_new,add,arrow_forward,bug_report,calendar_today,cancel,category,chat,check_circle,close,contrast,cookie,description,expand_less,expand_more,favorite,filter_alt_off,filter_b_and_w,filter_list,home,home_work,info,link,location_city,location_on,logout,map,mouse,my_location,open_in_new,payments,person,progress_activity,refresh,remove,restart_alt,schedule,search,star,straighten,target,text_fields,warning&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script type="text/javascript" async="" charset="utf-8" src="https://www.gstatic.com/recaptcha/releases/ne1iDVwClkE7nKD3uA9Vqsvl/recaptcha__en.js" crossorigin="anonymous" integrity="sha384-cY97sCr8WELtsh3j/+rGVFox+Vp6rOKezL2WqBLAmfM4LI/T1MuA/JDuBi0aDroT"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="lib/MarkerCluster.css">
+    <link rel="stylesheet" href="lib/MarkerCluster.Default.css">
+    <script src="lib/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="tailwind-output.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .app-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Mobile: bottom sheet sidebar */
+        @media (max-width: 768px) {
+            .desktop-filters {
+                display: none !important;
+            }
+            .mobile-filters {
+                display: flex !important;
+            }
+            .main-layout {
+                flex-direction: column !important;
+            }
+            .sidebar {
+                display: none !important;
+            }
+            .mobile-sheet {
+                display: flex !important;
+            }
+            .map-section {
+                flex: 1 !important;
+            }
+            .map-legend {
+                display: none;
+            }
+            header {
+                padding: 8px 12px !important;
+            }
+            header .logo-text h1 {
+                font-size: 16px !important;
+            }
+            header .logo-text p {
+                display: none;
+            }
+            header .logo-icon {
+                width: 36px !important;
+                height: 36px !important;
+            }
+            .logout-btn span:last-child {
+                display: none;
+            }
+            .logout-btn {
+                padding: 6px 10px !important;
+            }
+            #cityFilterPanel {
+                top: 8px !important;
+                right: 8px !important;
+                max-width: calc(100vw - 16px) !important;
+                background: transparent !important; /* Remove big box background */
+                border: none !important;
+                box-shadow: none !important;
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+                pointer-events: none; /* Let touches pass through the empty gaps to the map */
+            }
+            #cityFilterPanel .text-xs {
+                font-size: 11px;
+            }
+            #mobileToggleSidebar {
+                display: none !important;
+            }
+        
+       
+            /* =========================================
+               1. MAP CONTROLS (Zoom, Center, Radius)
+               Move to bottom-left, make horizontal & smaller
+               ========================================= */
+            .map-section > .absolute.top-4.left-4 {
+                top: auto !important;
+                bottom: 64px !important; /* Aligns with your bug report button */
+                left: 10px !important;
+                flex-direction: row !important; 
+                gap: 8px !important;
+            }
+
+            .map-section > .absolute.top-4.left-4 button {
+                width: 38px !important;
+                height: 38px !important;
+                border-radius: 50% !important; /* Round buttons to save space */
+            }
+
+            /* Make the Zoom In/Out container horizontal */
+            .map-section > .absolute.top-4.left-4 > .flex-col {
+                flex-direction: row !important; 
+                border-radius: 9999px !important; /* Pill shape */
+            }
+
+            .map-section > .absolute.top-4.left-4 > .flex-col button {
+                border-radius: 0 !important;
+            }
+
+            /* =========================================
+               2. CITY & TOGGLE FILTERS
+               Convert box into floating horizontal pills
+               ========================================= */
+            #cityFilterPanel {
+                top: 8px !important;
+                right: 8px !important;
+                max-width: calc(100vw - 16px) !important;
+                background: transparent !important; /* Remove big box background */
+                border: none !important;
+                box-shadow: none !important;
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+                pointer-events: none; /* Let touches pass through the empty gaps to the map */
+            }
+
+            /* Hide the text headers ("Cities" and "Filters") on mobile */
+            #cityFilterPanel > .px-3.py-2 {
+                display: none !important;
+            }
+
+            /* Adjust the wrappers to flow horizontally */
+            #cityFilterPanel > .flex-col {
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+                padding: 0 !important;
+            }
+
+            /* Style the checkboxes as floating pills */
+            #cityFilterPanel .city-filter-option {
+                background: rgba(18, 18, 26, 0.85) !important;
+                backdrop-filter: blur(8px);
+                border: 1px solid rgba(99, 102, 241, 0.3) !important;
+                padding: 6px 12px !important;
+                border-radius: 20px !important;
+                pointer-events: auto; /* Re-enable clicks for the pills */
+                margin: 0 !important;
+            }
+        }
+
+        /* Extra small phones */
+        @media (max-width: 380px) {
+            header {
+                padding: 6px 8px !important;
+            }
+            .mobile-filters.shrink-0 {
+                padding: 6px 8px !important;
+            }
+        }
+
+        /* City filter checkboxes */
+        .city-checkbox {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+        .city-check-custom {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 2px solid rgba(99, 102, 241, 0.4);
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .city-checkbox:checked + .city-check-custom::after {
+            content: '';
+            width: 4px;
+            height: 8px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg) translate(-0.5px, -0.5px);
+        }
+        /* Tel Aviv - blue */
+        .city-check-tel-aviv { border-color: rgba(96, 165, 250, 0.4); }
+        .city-filter-option:hover .city-check-tel-aviv { border-color: #60a5fa; }
+        #cityTelAviv:checked + .city-check-tel-aviv { background: #60a5fa; border-color: #60a5fa; }
+        /* Givatayim - violet */
+        .city-check-givatayim { border-color: rgba(167, 139, 250, 0.4); }
+        .city-filter-option:hover .city-check-givatayim { border-color: #a78bfa; }
+        #cityGivatayim:checked + .city-check-givatayim { background: #a78bfa; border-color: #a78bfa; }
+        /* Ramat Gan - pink */
+        .city-check-ramat-gan { border-color: rgba(244, 114, 182, 0.4); }
+        .city-filter-option:hover .city-check-ramat-gan { border-color: #f472b6; }
+        #cityRamatGan:checked + .city-check-ramat-gan { background: #f472b6; border-color: #f472b6; }
+        /* No price - amber/warning */
+        .city-check-no-price { border-color: rgba(245, 158, 11, 0.4); }
+        .city-filter-option:hover .city-check-no-price { border-color: #f59e0b; }
+        #showNoPrice:checked + .city-check-no-price { background: #f59e0b; border-color: #f59e0b; }
+        /* Realtor - amber */
+        .city-check-realtor { border-color: rgba(245, 158, 11, 0.4); }
+        .city-filter-option:hover .city-check-realtor { border-color: #f59e0b; }
+        #showRealtors:checked + .city-check-realtor { background: #f59e0b; border-color: #f59e0b; }
+
+        /* Like Button */
+        .like-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .like-btn .material-symbols-outlined {
+            font-size: 24px;
+            color: #71717a; /* gray-500 */
+            transition: all 0.2s ease;
+            font-variation-settings: 'FILL' 0;
+        }
+        .like-btn:hover .material-symbols-outlined {
+            color: #ec4899; /* pink-500 */
+        }
+        .like-btn.liked .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+            color: #ec4899; /* pink-500 */
+            animation: pop 0.3s ease;
+        }
+        .like-btn.popup {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+        }
+        .like-btn.popup .material-symbols-outlined {
+            color: white;
+        }
+        .like-btn.popup.liked .material-symbols-outlined {
+            color: #ec4899;
+        }
+        .popup-likes {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            color: #ec4899; /* pink-500 */
+        }
+        .popup-likes .material-symbols-outlined {
+            color: #ec4899;
+        }
+
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            background-color: #1a1a2e; /* Match dark theme */
+        }
+
+        /* Favorites Button Custom Styles (Bypass Tailwind Build) */
+        .btn-favorites {
+            background-color: rgba(236, 72, 153, 0.1) !important; /* pink-500/10 */
+            border: 1px solid rgba(236, 72, 153, 0.3) !important;
+            color: #f472b6 !important; /* pink-400 */
+            box-shadow: 0 10px 15px -3px rgba(236, 72, 153, 0.1) !important;
+        }
+        .btn-favorites:hover {
+            background-color: rgba(236, 72, 153, 0.2) !important;
+            border-color: rgba(236, 72, 153, 0.5) !important;
+        }
+        
+        .btn-all-apartments {
+            background-color: rgba(59, 130, 246, 0.1) !important; /* blue-500/10 */
+            border: 1px solid rgba(59, 130, 246, 0.3) !important;
+            color: #60a5fa !important; /* blue-400 */
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1) !important;
+        }
+        .btn-all-apartments:hover {
+            background-color: rgba(59, 130, 246, 0.2) !important;
+            border-color: rgba(59, 130, 246, 0.5) !important;
+        }
+
+        .sidebar-go-back {
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            border: 1px solid rgba(59, 130, 246, 0.3) !important;
+            color: #60a5fa !important;
+        }
+        .sidebar-go-back:hover {
+            background-color: rgba(59, 130, 246, 0.2) !important;
+        }
+
+    </style>
+<style>
+/* Accessibility Widget */
+.a11y-fab {
+    position: fixed;
+    bottom: 24px;
+    left: 16px;
+    z-index: 100001;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border: 2px solid rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 24px rgba(99,102,241,0.45);
+    transition: transform 0.2s, box-shadow 0.2s;
+    line-height: 1;
+}
+.a11y-fab:hover { transform: scale(1.1); box-shadow: 0 6px 32px rgba(99,102,241,0.6); }
+.a11y-fab:focus-visible { outline: 3px solid #a5b4fc; outline-offset: 3px; }
+.a11y-fab svg { width: 28px; height: 28px; fill: #fff; }
+
+.a11y-panel {
+    position: fixed;
+    bottom: 88px; /* updated dynamically */
+    left: 16px;
+    z-index: 100001;
+    width: 300px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    background: rgba(12, 12, 20, 0.97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 20px;
+    padding: 0;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(99,102,241,0.1);
+    font-family: 'Rubik', sans-serif;
+    direction: rtl;
+    display: none;
+    animation: a11ySlideUp 0.25s ease-out;
+}
+.a11y-panel.open { display: block; }
+@keyframes a11ySlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.a11y-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid rgba(99,102,241,0.12);
+}
+.a11y-panel-header-icon {
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.a11y-panel-header-icon span { color: #fff; font-size: 22px; }
+.a11y-panel-title { font-size: 16px; font-weight: 700; color: #f1f1f4; }
+.a11y-panel-subtitle { font-size: 11px; color: #71717a; margin-top: 1px; }
+
+.a11y-panel-body { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 8px; }
+
+.a11y-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(18,18,26,0.5);
+    border: 1px solid rgba(99,102,241,0.06);
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+.a11y-option:hover { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.15); }
+.a11y-option.active { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.25); }
+.a11y-option-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(99,102,241,0.1);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+.a11y-option.active .a11y-option-icon { background: rgba(99,102,241,0.25); }
+.a11y-option-icon span { color: #818cf8; font-size: 20px; }
+.a11y-option.active .a11y-option-icon span { color: #a5b4fc; }
+.a11y-option-text { flex: 1; }
+.a11y-option-label { font-size: 13px; font-weight: 600; color: #e4e4e7; }
+.a11y-option-desc { font-size: 11px; color: #71717a; margin-top: 1px; }
+
+.a11y-font-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(18,18,26,0.5);
+    border: 1px solid rgba(99,102,241,0.06);
+}
+.a11y-font-controls .a11y-option-icon { flex-shrink: 0; }
+.a11y-font-controls .a11y-option-text { flex: 1; }
+.a11y-font-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(99,102,241,0.2);
+    background: rgba(99,102,241,0.08);
+    color: #a5b4fc;
+    font-size: 16px; font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+}
+.a11y-font-btn:hover { background: rgba(99,102,241,0.2); }
+.a11y-font-btn:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 1px; }
+.a11y-font-size-label { font-size: 13px; font-weight: 700; color: #a5b4fc; min-width: 38px; text-align: center; }
+
+.a11y-reset-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px;
+    margin-top: 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(99,102,241,0.15);
+    background: transparent;
+    color: #71717a;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Rubik', sans-serif;
+}
+.a11y-reset-btn:hover { color: #f1f1f4; background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.25); }
+.a11y-reset-btn:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 1px; }
+
+.a11y-panel-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    font-size: 12px;
+    color: #6366f1;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+.a11y-panel-link:hover { color: #a5b4fc; }
+
+/* Applied accessibility classes */
+html.a11y-high-contrast * {
+    border-color: #fff !important;
+}
+html.a11y-high-contrast body {
+    background: #000 !important;
+    color: #fff !important;
+}
+html.a11y-high-contrast p,
+html.a11y-high-contrast span,
+html.a11y-high-contrast div,
+html.a11y-high-contrast li,
+html.a11y-high-contrast td,
+html.a11y-high-contrast th,
+html.a11y-high-contrast label,
+html.a11y-high-contrast h1,
+html.a11y-high-contrast h2,
+html.a11y-high-contrast h3,
+html.a11y-high-contrast h4,
+html.a11y-high-contrast h5,
+html.a11y-high-contrast h6 {
+    color: #fff !important;
+}
+html.a11y-high-contrast a { color: #ffff00 !important; }
+html.a11y-high-contrast button,
+html.a11y-high-contrast input,
+html.a11y-high-contrast select,
+html.a11y-high-contrast textarea {
+    background: #000 !important;
+    color: #fff !important;
+    border: 2px solid #fff !important;
+}
+
+html.a11y-highlight-links a {
+    outline: 2px solid #ffff00 !important;
+    outline-offset: 2px;
+    text-decoration: underline !important;
+}
+
+html.a11y-big-cursor,
+html.a11y-big-cursor * {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cpath d='M8 4l28 20H20l10 18-6 2-9-18-7 7z' fill='%23000' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E") 4 4, auto !important;
+}
+
+html.a11y-grayscale { filter: grayscale(100%); }
+
+html.a11y-reading-guide .a11y-reading-line {
+    display: block !important;
+}
+.a11y-reading-line {
+    display: none !important;
+    position: fixed;
+    left: 0; right: 0;
+    height: 12px;
+    background: rgba(255, 255, 0, 0.18);
+    border-top: 2px solid rgba(255, 255, 0, 0.5);
+    border-bottom: 2px solid rgba(255, 255, 0, 0.5);
+    pointer-events: none;
+    z-index: 99998;
+    transition: top 0.05s;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+    .a11y-fab { bottom: 24px; left: 16px; width: 46px; height: 46px; font-size: 24px; }
+    .a11y-fab svg { width: 24px; height: 24px; }
+    .a11y-panel { bottom: 82px; left: 12px; right: 12px; width: auto; }
+}
+</style><script src="https://www.google.com/recaptcha/enterprise.js"></script><script src="https://www.googletagmanager.com/gtag/js?l=dataLayer&amp;id=G-032X58GNJ8" async=""></script></head>
+<body class="bg-background-dark font-sans h-screen overflow-hidden text-text-primary">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p class="text-white text-lg font-semibold mt-4">טוען דירות...</p>
+            <p class="text-gray-400 text-sm mt-1">אנא המתן</p>
+        </div>
+    </div>
+    <!-- Main App Content -->
+    <div id="appContent" class="app-content h-screen" style="display: flex; opacity: 1;">
+        <!-- Header -->
+        <header class="shrink-0 flex items-center justify-between border-b border-border-dark glass-effect px-6 py-4 z-[2000] relative">
+            <!-- Logo -->
+            <div class="flex items-center">
+                <span style="font-family: 'Playfair Display', serif;" class="text-2xl font-black tracking-tight"><span class="bg-gradient-to-r from-yellow-500 to-amber-400 bg-clip-text text-transparent">4</span><span class="bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">KIROT</span></span>
+            </div>
+
+            <!-- Desktop Filters (hidden on mobile) -->
+            <div class="desktop-filters absolute left-1/2 -translate-x-1/2 flex items-center gap-4">
+                <!-- Address Search -->
+                <button onclick="openAddressSearch()" class="flex items-center justify-center w-10 h-10 bg-card-dark border border-primary/40 rounded-full hover:border-primary hover:shadow-lg hover:shadow-primary/25 transition-all cursor-pointer" title="חיפוש כתובת">
+                    <span class="material-symbols-outlined text-primary text-lg">search</span>
+                </button>
+                <!-- Days Filter -->
+                <div class="relative z-[2001]">
+                    <button id="daysFilterBtn" class="flex items-center gap-2 bg-card-dark border border-primary/40 rounded-full px-4 py-2 transition-all duration-300 hover:border-primary hover:shadow-lg hover:shadow-primary/25 cursor-pointer">
+                        <span class="material-symbols-outlined text-primary text-lg">calendar_today</span>
+                        <span id="daysFilterText" class="text-sm font-medium text-text-primary">3 ימים אחרונים</span>
+                        <span class="material-symbols-outlined text-text-secondary text-lg transition-transform duration-200" id="daysFilterArrow">expand_more</span>
+                    </button>
+                    <input type="hidden" id="daysFilter" value="3">
+                    <div id="daysFilterDropdown" class="absolute top-full right-0 mt-2 w-52 bg-card-dark border border-primary/30 rounded-xl shadow-2xl shadow-black/50 overflow-hidden hidden">
+                        <div class="py-2">
+                            <div class="dropdown-option px-4 py-3 text-sm cursor-pointer transition-all text-text-primary" data-value="1">24 שעות אחרונות</div>
+                            <div class="dropdown-option px-4 py-3 text-sm cursor-pointer transition-all text-text-primary selected" data-value="3">3 ימים אחרונים</div>
+                            <div class="dropdown-option px-4 py-3 text-sm cursor-pointer transition-all text-text-primary" data-value="7">7 ימים אחרונים</div>
+                            <div class="dropdown-option px-4 py-3 text-sm cursor-pointer transition-all text-text-primary" data-value="10">10 ימים אחרונים</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price Filter -->
+                <div class="flex items-center gap-3 bg-card-dark border border-primary/40 rounded-full px-4 py-1.5 transition-all duration-300 hover:border-primary hover:shadow-lg hover:shadow-primary/25">
+                    <span class="material-symbols-outlined text-primary text-lg">payments</span>
+                    <input type="number" id="minPrice" placeholder="מינימום" min="0" class="bg-background-dark border border-primary/30 rounded-full px-4 py-1.5 text-sm font-medium focus:outline-none focus:border-primary w-28 text-text-primary placeholder-text-secondary text-center transition-all" oninput="debouncedApplyFilters()">
+                    <span class="text-primary font-bold">-</span>
+                    <input type="number" id="maxPrice" placeholder="מקסימום" min="0" class="bg-background-dark border border-primary/30 rounded-full px-4 py-1.5 text-sm font-medium focus:outline-none focus:border-primary w-28 text-text-primary placeholder-text-secondary text-center transition-all" oninput="debouncedApplyFilters()">
+                    <button onclick="clearPriceFilter()" class="text-text-secondary hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+
+                <!-- Refresh Button with tooltip -->
+                <div class="relative">
+                    <button id="refreshBtn" onclick="refreshData()" class="find-btn flex items-center gap-2 bg-gradient-to-r from-primary to-purple-500 hover:from-primary-hover hover:to-purple-600 text-white px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40">
+                        <span id="refreshIcon" class="material-symbols-outlined text-lg">refresh</span>
+                        <span id="refreshText">חיפוש דירות</span>
+                    </button>
+                    <div id="startTooltip" class="absolute left-0 right-0 mx-auto w-fit top-full mt-3 bg-white text-gray-900 text-sm font-bold px-4 py-2 rounded-xl shadow-lg whitespace-nowrap z-50 animate-bounce pointer-events-none">
+                        <div class="absolute -top-2 left-0 right-0 mx-auto w-3 h-3 bg-white rotate-45"></div>
+                        👋 לחץ כאן כדי להתחיל
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile: Refresh + Toggle + Filter (hidden on desktop) -->
+            <div class="mobile-filters items-center gap-2" style="display: none;">
+                <div class="relative">
+                    <button id="refreshBtnMobile" onclick="refreshData()" class="find-btn flex items-center gap-1.5 bg-gradient-to-r from-primary to-purple-500 text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg shadow-primary/20">
+                        <span class="material-symbols-outlined text-base">refresh</span>
+                        <span>חיפוש</span>
+                    </button>
+                    <div id="startTooltipMobile" class="absolute left-0 right-0 mx-auto w-fit top-full mt-3 bg-white text-gray-900 text-sm font-bold px-4 py-2 rounded-xl shadow-lg whitespace-nowrap z-50 animate-bounce pointer-events-none">
+                        <div class="absolute -top-2 left-0 right-0 mx-auto w-3 h-3 bg-white rotate-45"></div>
+                        👋 לחץ כאן כדי להתחיל
+                    </div>
+                </div>
+                <button id="mobileFilterBtn" onclick="openMobileFilters()" class="flex items-center justify-center w-10 h-10 bg-card-dark border border-primary/40 rounded-full">
+                    <span class="material-symbols-outlined text-primary">filter_alt</span>
+                </button>
+                <button id="mobileToggleSidebar" onclick="toggleMobileSidebar()" class="mobile-toggle-btn items-center justify-center w-10 h-10 bg-card-dark border border-primary/40 rounded-full" style="display: none;">
+                    <span class="material-symbols-outlined text-primary">list</span>
+                </button>
+            </div>
+
+            <!-- User Actions -->
+            <div class="flex items-center gap-2">
+                <button id="favoritesBtn" onclick="toggleFavoritesView()" class="flex items-center gap-2 btn-favorites px-5 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer">
+                    <span id="favoritesBtnIcon" class="material-symbols-outlined text-base">favorite</span>
+                    <span id="favoritesBtnText" class="text-xs font-medium">מועדפים</span>
+                </button>
+                <button id="logoutBtn" class="logout-btn flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-full px-5 py-2 hover:bg-red-500/20 hover:border-red-400 hover:shadow-lg hover:shadow-red-500/10 transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-sm text-red-400">logout</span>
+                    <span class="text-xs font-medium text-red-400">התנתקות</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Mobile Filter Bar (hidden on desktop) -->
+        <div class="mobile-filters shrink-0 border-b border-border-dark bg-card-dark px-3 py-2.5 z-[1999] gap-2 overflow-x-auto" style="display: none;">
+            <!-- Address Search Mobile -->
+            <button onclick="openAddressSearch()" class="flex items-center justify-center w-8 h-8 bg-background-dark border border-primary/40 rounded-full hover:border-primary transition-all cursor-pointer shrink-0" title="חיפוש כתובת">
+                <span class="material-symbols-outlined text-primary text-sm">search</span>
+            </button>
+            <!-- Days Filter Mobile -->
+            <div class="relative z-[2001] shrink-0">
+                <button id="daysFilterBtnMobile" class="flex items-center gap-1.5 bg-background-dark border border-primary/40 rounded-full px-3 py-1.5 cursor-pointer">
+                    <span class="material-symbols-outlined text-primary text-sm">calendar_today</span>
+                    <span id="daysFilterTextMobile" class="text-xs font-medium text-text-primary whitespace-nowrap">3 ימים</span>
+                    <span class="material-symbols-outlined text-text-secondary text-sm transition-transform duration-200" id="daysFilterArrowMobile">expand_more</span>
+                </button>
+            </div>
+
+            <!-- Price Filter Mobile -->
+            <div class="flex items-center gap-1.5 shrink-0">
+                <input type="number" id="minPriceMobile" placeholder="מינ׳" min="0" class="bg-background-dark border border-primary/30 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:border-primary w-20 text-text-primary placeholder-text-secondary text-center" oninput="syncMobilePrice()">
+                <span class="text-primary font-bold text-xs">-</span>
+                <input type="number" id="maxPriceMobile" placeholder="מקס׳" min="0" class="bg-background-dark border border-primary/30 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:border-primary w-20 text-text-primary placeholder-text-secondary text-center" oninput="syncMobilePrice()">
+                <button onclick="clearPriceFilter(); document.getElementById('minPriceMobile').value=''; document.getElementById('maxPriceMobile').value='';" class="text-text-secondary hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-layout flex flex-1 overflow-hidden relative">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="sidebar w-[420px] flex flex-col bg-card-dark border-l border-border-dark z-10 shrink-0">
+                <!-- Stats Header -->
+                <div class="p-5 border-b border-border-dark" style="background: linear-gradient(180deg, rgba(99,102,241,0.06) 0%, transparent 100%);">
+                    <!-- Count -->
+                    <div class="flex items-baseline justify-center gap-2 mb-3">
+                        <h2 id="listingCount" class="text-3xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">0</h2>
+                        <span class="text-sm text-text-secondary font-medium">דירות נמצאו</span>
+                    </div>
+
+                    <!-- Status Pill -->
+                    <div id="statusBar" class="flex items-center justify-center gap-2 bg-background-dark/50 border border-border-dark rounded-xl px-3.5 py-2.5"><span class="w-2 h-2 rounded-full bg-text-secondary shrink-0"></span><span class="text-xs text-text-secondary text-center">יש ללחוץ על "חיפוש דירות" לטעינת דירות</span></div>
+
+                    <!-- Progress Bar -->
+                    <div id="progressContainer" class="hidden mt-3">
+                        <div class="h-1.5 bg-background-dark rounded-full overflow-hidden">
+                            <div id="progressBar" class="h-full bg-gradient-to-r from-primary to-purple-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <span id="progressText" class="text-[10px] font-medium text-primary mt-1 block text-left">0%</span>
+                    </div>
+                </div>
+
+                <!-- Apartment List -->
+                <div id="apartmentList" class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+                    <!-- Empty State -->
+                    <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center px-6">
+                        <div class="w-16 h-16 rounded-2xl bg-background-dark flex items-center justify-center mb-4">
+                            <span class="material-symbols-outlined text-3xl text-text-secondary">home_work</span>
+                        </div>
+                        <p class="text-text-secondary text-sm">לא נטענו דירות עדיין</p>
+                        <p class="text-text-secondary text-xs mt-1">יש לבחור טווח תאריכים וללחוץ על "חיפוש דירות"</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Map Section -->
+            <section class="map-section flex-1 relative overflow-hidden">
+                <div id="map" class="leaflet-container leaflet-touch leaflet-retina leaflet-fade-anim leaflet-grab leaflet-touch-drag leaflet-touch-zoom" tabindex="0" style="position: relative;"><div class="leaflet-pane leaflet-map-pane" style="transform: translate3d(0px, 0px, 0px);"><div class="leaflet-pane leaflet-tile-pane"><div class="leaflet-layer " style="z-index: 1; opacity: 1;"><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 19; transform: translate3d(0px, 0px, 0px) scale(1);"><img alt="" src="https://a.basemaps.cartocdn.com/dark_all/14/9776/6649@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(83px, 190px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/dark_all/14/9777/6649@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(339px, 190px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/dark_all/14/9776/6650@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(83px, 446px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/dark_all/14/9777/6650@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(339px, 446px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/dark_all/14/9776/6648@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(83px, -66px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/dark_all/14/9777/6648@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(339px, -66px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/dark_all/14/9775/6649@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-173px, 190px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/dark_all/14/9778/6649@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(595px, 190px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/dark_all/14/9775/6650@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-173px, 446px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/dark_all/14/9778/6650@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(595px, 446px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/dark_all/14/9776/6651@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(83px, 702px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/dark_all/14/9777/6651@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(339px, 702px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/dark_all/14/9775/6648@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-173px, -66px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/dark_all/14/9778/6648@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(595px, -66px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/dark_all/14/9775/6651@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-173px, 702px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/dark_all/14/9778/6651@2x.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(595px, 702px, 0px); opacity: 1;"></div></div></div><div class="leaflet-pane leaflet-overlay-pane"></div><div class="leaflet-pane leaflet-shadow-pane"></div><div class="leaflet-pane leaflet-marker-pane"></div><div class="leaflet-pane leaflet-tooltip-pane"></div><div class="leaflet-pane leaflet-popup-pane"></div><div class="leaflet-proxy leaflet-zoom-animated" style="transform: translate3d(2.50288e+06px, 1.70234e+06px, 0px) scale(8192);"></div></div><div class="leaflet-control-container"><div class="leaflet-top leaflet-left"></div><div class="leaflet-top leaflet-right"></div><div class="leaflet-bottom leaflet-left"></div><div class="leaflet-bottom leaflet-right"></div></div></div>
+
+                <!-- Map Controls -->
+                <div class="absolute top-4 left-4 flex flex-col gap-2 z-[1000]">
+                    <div class="flex flex-col rounded-xl overflow-hidden shadow-2xl border border-border-dark">
+                        <button onclick="zoomIn()" class="w-11 h-11 bg-card-dark flex items-center justify-center hover:bg-card-hover text-text-primary transition-colors border-b border-border-dark">
+                            <span class="material-symbols-outlined">add</span>
+                        </button>
+                        <button onclick="zoomOut()" class="w-11 h-11 bg-card-dark flex items-center justify-center hover:bg-card-hover text-text-primary transition-colors">
+                            <span class="material-symbols-outlined">remove</span>
+                        </button>
+                    </div>
+                    <button onclick="resetView()" class="w-11 h-11 bg-card-dark rounded-xl shadow-2xl border border-border-dark flex items-center justify-center hover:bg-card-hover text-text-primary transition-colors">
+                        <span class="material-symbols-outlined">my_location</span>
+                    </button>
+                    <!-- Circle Draw Tool -->
+                    <button id="circleToolBtn" onclick="toggleCircleTool()" class="w-11 h-11 bg-card-dark rounded-xl shadow-2xl border border-border-dark flex items-center justify-center hover:bg-card-hover text-text-primary transition-colors" title="סנן לפי אזור">
+                        <span class="material-symbols-outlined text-primary">target</span>
+                    </button>
+                    <button id="clearCircleBtn" onclick="clearCircleFilter()" class="w-11 h-11 bg-card-dark rounded-xl shadow-2xl border border-border-dark flex items-center justify-center hover:bg-card-hover text-text-primary transition-colors hidden" title="נקה סינון אזור">
+                        <span class="material-symbols-outlined">cancel</span>
+                    </button>
+
+                </div>
+
+                <!-- City Filter -->
+                <div id="cityFilterPanel" class="absolute top-4 right-4 bg-card-dark rounded-xl shadow-2xl border border-border-dark overflow-hidden z-[1000]">
+                    <div class="px-3 py-2 border-b border-border-dark flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-primary text-base">location_city</span>
+                        <span class="text-xs font-semibold text-text-secondary">ערים</span>
+                    </div>
+                    <div class="flex flex-col gap-0.5 p-1.5">
+                        <label class="city-filter-option flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-card-hover transition-colors">
+                            <input type="checkbox" id="cityTelAviv" class="city-checkbox" checked="" onchange="applyCityFilter()">
+                            <span class="city-check-custom city-check-tel-aviv"></span>
+                            <span class="text-xs font-medium text-text-primary">תל אביב</span>
+                        </label>
+                        <label class="city-filter-option flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-card-hover transition-colors">
+                            <input type="checkbox" id="cityGivatayim" class="city-checkbox" checked="" onchange="applyCityFilter()">
+                            <span class="city-check-custom city-check-givatayim"></span>
+                            <span class="text-xs font-medium text-text-primary">גבעתיים</span>
+                        </label>
+                        <label class="city-filter-option flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-card-hover transition-colors">
+                            <input type="checkbox" id="cityRamatGan" class="city-checkbox" checked="" onchange="applyCityFilter()">
+                            <span class="city-check-custom city-check-ramat-gan"></span>
+                            <span class="text-xs font-medium text-text-primary">רמת גן</span>
+                        </label>
+                    </div>
+                    <div class="px-3 py-2 border-t border-border-dark flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-warning text-base">filter_list</span>
+                        <span class="text-xs font-semibold text-text-secondary">סינון</span>
+                    </div>
+                    <div class="flex flex-col gap-0.5 p-1.5">
+                        <label class="city-filter-option flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-card-hover transition-colors">
+                            <input type="checkbox" id="showNoPrice" class="city-checkbox" checked="" onchange="applyAllFilters()">
+                            <span class="city-check-custom city-check-no-price"></span>
+                            <span class="text-xs font-medium text-text-primary">ללא מחיר</span>
+                        </label>
+                        <label class="city-filter-option flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-card-hover transition-colors">
+                            <input type="checkbox" id="showRealtors" class="city-checkbox" checked="" onchange="applyAllFilters()">
+                            <span class="city-check-custom city-check-realtor"></span>
+                            <span class="text-xs font-medium text-text-primary">תיווך</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Map Legend -->
+                <div id="mapLegend" class="map-legend absolute bottom-4 left-4 rounded-2xl px-4 py-3.5 z-[1000]" style="background: rgba(10,10,18,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(99,102,241,0.15); box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 20px rgba(99,102,241,0.05);">
+                    <p class="text-[11px] text-text-secondary mb-2.5 font-semibold tracking-wide text-center" style="letter-spacing: 1.5px;">מקרא מפה</p>
+                    <div class="flex items-center gap-2.5 mb-2">
+                        <div class="w-3 h-3 rounded-full bg-gradient-to-r from-primary to-purple-500 shadow-[0_0_6px_rgba(99,102,241,0.4)]"></div>
+                        <span class="text-[11px] text-text-primary font-medium">דירות להשכרה</span>
+                    </div>
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-primary to-purple-500 border-[3px] border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]"></div>
+                        <span class="text-[11px] text-text-primary font-medium">חדש (4 שעות)</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer (hidden on mobile - bottom sheet uses that space) -->
+        <footer class="site-footer shrink-0 hidden md:block">
+            <div style="display:flex;align-items:center;justify-content:center;position:relative;">
+                <button id="bugReportBtn" onclick="document.getElementById('bugReportModal').style.display='flex'" title="דיווח על באג" style="position:absolute;right:0;background:none;border:none;cursor:pointer;padding:6px;display:flex;align-items:center;animation:bugGlow 3s ease-in-out infinite;transition:transform 0.2s;" onmouseenter="this.style.transform='scale(1.15)'" onmouseleave="this.style.transform='scale(1)'">
+                    <span class="material-symbols-outlined" style="font-size:28px;">bug_report</span>
+                </button>
+                <nav>
+                    <a href="privacy.html">מדיניות פרטיות</a>
+                    <a href="terms.html">תנאי שימוש</a>
+                    <a href="cookies.html">מדיניות עוגיות</a>
+                    <a href="contact.html">צור קשר</a>
+                    <a href="accessibility.html">הצהרת נגישות</a>
+                </nav>
+            </div>
+        </footer>
+
+        <!-- Bug Report Modal -->
+        <div id="bugReportModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);">
+            <div style="background:linear-gradient(160deg,#1e1e2e 0%,#1a1a2e 100%);border:1px solid rgba(168,85,247,0.25);border-radius:20px;padding:28px 24px;width:90%;max-width:420px;direction:rtl;box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 40px rgba(168,85,247,0.08);">
+                <!-- Header -->
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,rgba(236,72,153,0.15),rgba(168,85,247,0.15));display:flex;align-items:center;justify-content:center;">
+                            <span class="material-symbols-outlined" style="font-size:20px;background:linear-gradient(135deg,#ec4899,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">bug_report</span>
+                        </div>
+                        <div>
+                            <h3 style="margin:0;font-size:16px;font-weight:700;color:#e2e8f0;">דיווח באג / משוב</h3>
+                            <p style="margin:2px 0 0;font-size:11px;color:#71717a;">נשמח לשמוע ממך</p>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('bugReportModal').style.display='none'" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#71717a;font-size:18px;line-height:1;transition:background 0.2s;" onmouseenter="this.style.background='rgba(255,255,255,0.1)'" onmouseleave="this.style.background='rgba(255,255,255,0.05)'">×</button>
+                </div>
+
+                <!-- Report Type -->
+                <div style="margin-bottom:16px;">
+                    <label style="font-size:12px;color:#a1a1aa;font-weight:500;display:block;margin-bottom:8px;">סוג הדיווח</label>
+                    <div style="display:flex;gap:8px;">
+                        <button class="bugTypeBtn" data-type="bug" onclick="selectBugType(this)" style="flex:1;padding:10px 8px;background:rgba(236,72,153,0.1);border:1px solid rgba(236,72,153,0.3);border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.2s;color:#e2e8f0;">
+                            <span class="material-symbols-outlined" style="font-size:20px;color:#ec4899;">bug_report</span>
+                            <span style="font-size:11px;font-weight:500;">באג</span>
+                        </button>
+                        <button class="bugTypeBtn" data-type="feedback" onclick="selectBugType(this)" style="flex:1;padding:10px 8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.2s;color:#71717a;">
+                            <span class="material-symbols-outlined" style="font-size:20px;">chat</span>
+                            <span style="font-size:11px;font-weight:500;">משוב</span>
+                        </button>
+                        <button class="bugTypeBtn" data-type="idea" onclick="selectBugType(this)" style="flex:1;padding:10px 8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.2s;color:#71717a;">
+                            <span class="material-symbols-outlined" style="font-size:20px;">category</span>
+                            <span style="font-size:11px;font-weight:500;">רעיון</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Star Rating -->
+                <div style="margin-bottom:16px;">
+                    <label style="font-size:12px;color:#a1a1aa;font-weight:500;display:block;margin-bottom:8px;">דירוג חוויה</label>
+                    <div id="bugStarRating" style="display:flex;gap:4px;direction:ltr;">
+                        <span class="bug-star material-symbols-outlined" data-star="1" onclick="setBugRating(1)" style="font-size:28px;cursor:pointer;color:#3f3f46;transition:all 0.15s;">star</span>
+                        <span class="bug-star material-symbols-outlined" data-star="2" onclick="setBugRating(2)" style="font-size:28px;cursor:pointer;color:#3f3f46;transition:all 0.15s;">star</span>
+                        <span class="bug-star material-symbols-outlined" data-star="3" onclick="setBugRating(3)" style="font-size:28px;cursor:pointer;color:#3f3f46;transition:all 0.15s;">star</span>
+                        <span class="bug-star material-symbols-outlined" data-star="4" onclick="setBugRating(4)" style="font-size:28px;cursor:pointer;color:#3f3f46;transition:all 0.15s;">star</span>
+                        <span class="bug-star material-symbols-outlined" data-star="5" onclick="setBugRating(5)" style="font-size:28px;cursor:pointer;color:#3f3f46;transition:all 0.15s;">star</span>
+                    </div>
+                </div>
+
+                <!-- Message -->
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:12px;color:#a1a1aa;font-weight:500;display:block;margin-bottom:8px;">תיאור</label>
+                    <textarea id="bugReportText" maxlength="2000" placeholder="ספר לנו מה קרה או מה היית רוצה לראות..." style="width:100%;min-height:110px;background:rgba(18,18,26,0.8);border:1px solid rgba(168,85,247,0.15);border-radius:12px;padding:12px 14px;color:#e2e8f0;font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;transition:border-color 0.2s,box-shadow 0.2s;line-height:1.6;" onfocus="this.style.borderColor='rgba(168,85,247,0.4)';this.style.boxShadow='0 0 0 3px rgba(168,85,247,0.08)'" onblur="this.style.borderColor='rgba(168,85,247,0.15)';this.style.boxShadow='none'"></textarea>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+                        <span id="bugReportCharCount" style="font-size:11px;color:#52525b;">0 / 2000</span>
+                        <span id="bugReportStatus" style="font-size:12px;font-weight:500;"></span>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button id="bugReportSubmit" onclick="submitBugReport()" style="width:100%;padding:12px;background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;box-shadow:0 4px 15px rgba(168,85,247,0.25);" onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(168,85,247,0.35)'" onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 15px rgba(168,85,247,0.25)'">שלח דיווח</button>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Sheet (hidden on desktop) -->
+    <div id="mobileSheet" class="mobile-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:1500;flex-direction:column;transform:translateY(calc(100% - 52px));transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);pointer-events:none;">
+        <!-- Handle -->
+        <div id="sheetHandle" onclick="toggleMobileSheet()" style="pointer-events:auto;display:flex;flex-direction:column;align-items:center;padding:8px 16px 6px 16px;cursor:pointer;background:linear-gradient(180deg,#1e1e2e,#12121a);border-radius:20px 20px 0 0;border-top:2px solid rgba(99,102,241,0.4);box-shadow:0 -4px 20px rgba(0,0,0,0.5);-webkit-tap-highlight-color:transparent;">
+            <div style="width:36px;height:4px;background:#555;border-radius:4px;margin-bottom:6px;"></div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;">
+                <span id="sheetArrow" class="material-symbols-outlined" style="font-size:18px;color:#818cf8;transition:transform 0.35s ease;">expand_less</span>
+                <span id="sheetCount" style="font-size:16px;font-weight:700;background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">0</span>
+                <span style="font-size:12px;color:#71717a;font-weight:500;">דירות נמצאו</span>
+            </div>
+        </div>
+        <!-- Content -->
+        <div id="mobileSheetContent" style="pointer-events:auto;background:#12121a;height:50vh;max-height:60vh;overflow-y:auto;padding:12px;" class="custom-scrollbar">
+            <!-- Filled by JS -->
+        </div>
+    </div>
+
+    <!-- Mobile Bug Report Button -->
+    <style>
+    @keyframes bugGlow{0%,100%{color:#ec4899;filter:drop-shadow(0 0 4px rgba(236,72,153,0.4))}50%{color:#a855f7;filter:drop-shadow(0 0 8px rgba(168,85,247,0.5))}}
+    #mobileBugBtn{display:flex}@media(min-width:768px){#mobileBugBtn{display:none!important}}
+    </style>
+    <button id="mobileBugBtn" onclick="document.getElementById('bugReportModal').style.display='flex'" title="דיווח על באג" style="position:fixed;bottom:62px;right:10px;z-index:1400;width:48px;height:48px;border-radius:50%;background:rgba(30,30,46,0.9);border:1px solid rgba(168,85,247,0.3);align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(8px);animation:bugGlow 3s ease-in-out infinite;">
+        <span class="material-symbols-outlined" style="font-size:26px;">bug_report</span>
+    </button>
+
+    <!-- Hidden elements for JS compatibility -->
+    <div id="cachedCount" class="hidden">0</div>
+    <div id="geocodedCount" class="hidden">0</div>
+
+    <div id="daysFilterDropdownMobile" class="fixed w-44 bg-card-dark border border-primary/30 rounded-xl shadow-2xl shadow-black/50 overflow-hidden hidden" style="z-index: 99999 !important; transform: translateZ(0);">
+        <div class="py-1">
+            <div class="dropdown-option-mobile px-3 py-2.5 text-xs cursor-pointer transition-all text-text-primary" data-value="1">24 שעות</div>
+            <div class="dropdown-option-mobile px-3 py-2.5 text-xs cursor-pointer transition-all text-text-primary selected" data-value="3">3 ימים</div>
+            <div class="dropdown-option-mobile px-3 py-2.5 text-xs cursor-pointer transition-all text-text-primary" data-value="7">7 ימים</div>
+            <div class="dropdown-option-mobile px-3 py-2.5 text-xs cursor-pointer transition-all text-text-primary" data-value="10">10 ימים</div>
+        </div>
+    </div>
+
+    <!-- Address Search Popup -->
+    <div id="addressSearchPopup" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10001] flex items-center justify-center hidden">
+        <div class="bg-card-dark border border-border-dark rounded-2xl p-6 max-w-sm mx-4 shadow-2xl animate-pop w-full">
+            <div class="flex items-center justify-center w-14 h-14 rounded-xl bg-primary/20 mx-auto mb-4">
+                <span class="material-symbols-outlined text-primary text-3xl">search</span>
+            </div>
+            <h3 class="text-lg font-bold text-center mb-4">חיפוש כתובת</h3>
+            <div class="relative mb-4">
+                <input type="text" id="addressSearchInput" placeholder="הקלד כתובת..." class="w-full bg-background-dark border border-primary/30 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary text-text-primary placeholder-text-secondary transition-all" autocomplete="off" dir="rtl">
+                <div id="addressSearchSpinner" class="absolute left-3 top-1/2 -translate-y-1/2 hidden">
+                    <span class="material-symbols-outlined text-primary animate-spin text-lg">progress_activity</span>
+                </div>
+            </div>
+            <div id="addressSearchResults" class="max-h-48 overflow-y-auto custom-scrollbar mb-4 hidden">
+            </div>
+            <p id="addressSearchError" class="text-red-400 text-xs text-center mb-3 hidden"></p>
+            <div class="flex gap-2">
+                <button onclick="searchAddress()" class="flex-1 bg-gradient-to-r from-primary to-purple-500 hover:from-primary-hover hover:to-purple-600 text-white py-3 rounded-xl font-semibold transition-all">
+                    חפש
+                </button>
+                <button onclick="closeAddressSearch()" class="flex-1 bg-background-dark border border-border-dark text-text-secondary py-3 rounded-xl font-semibold transition-all hover:text-text-primary hover:border-primary/30">
+                    סגור
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disclaimer Popup (once per session) -->
+    <div id="disclaimerPopup" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center hidden">
+        <div class="bg-card-dark border border-border-dark rounded-2xl p-6 max-w-sm mx-4 shadow-2xl animate-pop">
+            <div class="flex items-center justify-center w-14 h-14 rounded-xl bg-amber-500/20 mx-auto mb-4">
+                <span class="material-symbols-outlined text-amber-400 text-3xl">info</span>
+            </div>
+            <h3 class="text-lg font-bold text-center mb-2">שים לב</h3>
+            <p class="text-text-secondary text-sm text-center mb-5 leading-relaxed">המידע באתר אינו מדויק ב-100%. יש לוודא את הפרטים דרך הקישור לפוסט המקורי בפייסבוק לפני פנייה למפרסם.</p>
+            <button onclick="closeDisclaimerPopup()" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-3 rounded-xl font-semibold transition-all">
+                הבנתי
+            </button>
+        </div>
+    </div>
+
+    <!-- Cookie Consent Banner -->
+    <div id="cookieBanner" class="fixed bottom-0 left-0 right-0 z-[10000] hidden">
+        <div class="mx-4 mb-4 md:mx-auto md:max-w-lg bg-card-dark border border-primary/20 rounded-2xl p-5 shadow-2xl shadow-black/50" style="backdrop-filter: blur(20px);">
+            <div class="flex items-start gap-3 mb-4">
+                <span class="material-symbols-outlined text-primary text-2xl shrink-0 mt-0.5">cookie</span>
+                <div>
+                    <h3 class="text-sm font-semibold text-text-primary mb-1">האתר משתמש בעוגיות</h3>
+                    <p class="text-xs text-text-secondary leading-relaxed">אנו משתמשים בעוגיות כדי לשמור את ההתחברות שלך ולשפר את חוויית השימוש. <a href="cookies.html" class="text-primary hover:underline">מדיניות עוגיות</a></p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="acceptCookies()" class="flex-1 bg-gradient-to-r from-primary to-purple-500 hover:from-primary-hover hover:to-purple-600 text-white py-2.5 rounded-xl text-xs font-semibold transition-all">
+                    אישור
+                </button>
+                <button onclick="declineCookies()" class="flex-1 bg-background-dark border border-border-dark text-text-secondary py-2.5 rounded-xl text-xs font-semibold transition-all hover:text-text-primary hover:border-primary/30">
+                    דחייה
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dropdown & Popup Logic (no Firebase) -->
+    <script>
+        // Cookie consent
+        if (!localStorage.getItem('cookiesAccepted')) {
+            setTimeout(() => document.getElementById('cookieBanner')?.classList.remove('hidden'), 1000);
+        }
+        window.acceptCookies = function() {
+            localStorage.setItem('cookiesAccepted', 'true');
+            document.getElementById('cookieBanner').classList.add('hidden');
+        };
+        window.declineCookies = function() {
+            localStorage.setItem('cookiesAccepted', 'false');
+            localStorage.removeItem('rememberMe');
+            document.getElementById('cookieBanner').classList.add('hidden');
+        };
+
+        // Show disclaimer once per session
+        setTimeout(() => {
+            if (!sessionStorage.getItem('disclaimerSeen')) {
+                const disclaimer = document.getElementById('disclaimerPopup');
+                if (disclaimer) disclaimer.classList.remove('hidden');
+            }
+        }, 800);
+
+        window.closeDisclaimerPopup = function() {
+            sessionStorage.setItem('disclaimerSeen', '1');
+            const disclaimer = document.getElementById('disclaimerPopup');
+            if (disclaimer) disclaimer.classList.add('hidden');
+        }
+
+        // Custom Dropdown functionality
+        const daysFilterBtn = document.getElementById('daysFilterBtn');
+        const daysFilterDropdown = document.getElementById('daysFilterDropdown');
+        const daysFilterText = document.getElementById('daysFilterText');
+        const daysFilterInput = document.getElementById('daysFilter');
+        const daysFilterArrow = document.getElementById('daysFilterArrow');
+        const dropdownOptions = document.querySelectorAll('.dropdown-option');
+
+        // Toggle dropdown
+        daysFilterBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = !daysFilterDropdown.classList.contains('hidden');
+            if (isOpen) {
+                daysFilterDropdown.classList.add('hidden');
+                daysFilterArrow.classList.remove('open');
+            } else {
+                daysFilterDropdown.classList.remove('hidden');
+                daysFilterArrow.classList.add('open');
+            }
+        });
+
+        // Handle option selection
+        dropdownOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const value = option.dataset.value;
+                const text = option.textContent;
+
+                daysFilterInput.value = value;
+                daysFilterText.textContent = text;
+
+                dropdownOptions.forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+
+                daysFilterDropdown.classList.add('hidden');
+                daysFilterArrow.classList.remove('open');
+
+                daysFilterInput.dispatchEvent(new Event('change'));
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!daysFilterBtn.contains(e.target) && !daysFilterDropdown.contains(e.target)) {
+                daysFilterDropdown.classList.add('hidden');
+                daysFilterArrow.classList.remove('open');
+            }
+        });
+
+        // === Address Search ===
+        window.openAddressSearch = function() {
+            const popup = document.getElementById('addressSearchPopup');
+            popup.classList.remove('hidden');
+            setTimeout(() => document.getElementById('addressSearchInput').focus(), 100);
+        };
+
+        window.closeAddressSearch = function() {
+            document.getElementById('addressSearchPopup').classList.add('hidden');
+            document.getElementById('addressSearchInput').value = '';
+            document.getElementById('addressSearchResults').classList.add('hidden');
+            document.getElementById('addressSearchResults').innerHTML = '';
+            document.getElementById('addressSearchError').classList.add('hidden');
+        };
+
+        window.searchAddress = async function() {
+            const input = document.getElementById('addressSearchInput').value.trim();
+            if (!input) return;
+
+            const spinner = document.getElementById('addressSearchSpinner');
+            const resultsDiv = document.getElementById('addressSearchResults');
+            const errorEl = document.getElementById('addressSearchError');
+
+            spinner.classList.remove('hidden');
+            resultsDiv.classList.add('hidden');
+            errorEl.classList.add('hidden');
+
+            try {
+                const url = 'https://nominatim.openstreetmap.org/search?' + new URLSearchParams({
+                    format: 'json',
+                    q: input,
+                    countrycodes: 'il',
+                    viewbox: '34.65,31.9,34.95,32.25',
+                    bounded: '1',
+                    limit: '5',
+                    'accept-language': 'he',
+                    addressdetails: '1'
+                });
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(res.status);
+                const data = await res.json();
+
+                spinner.classList.add('hidden');
+
+                if (!data.length) {
+                    errorEl.textContent = 'לא נמצאו תוצאות';
+                    errorEl.classList.remove('hidden');
+                    return;
+                }
+
+                resultsDiv.innerHTML = '';
+                data.forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.className = 'w-full text-right px-4 py-3 text-sm text-text-primary hover:bg-card-hover rounded-lg transition-colors border-b border-border-dark last:border-0';
+                    btn.textContent = item.display_name;
+                    btn.addEventListener('click', () => {
+                        const lat = parseFloat(item.lat);
+                        const lng = parseFloat(item.lon);
+                        if (window.map) {
+                            window.map.flyTo([lat, lng], 16, { duration: 1.5 });
+                        }
+                        closeAddressSearch();
+                    });
+                    resultsDiv.appendChild(btn);
+                });
+                resultsDiv.classList.remove('hidden');
+            } catch (e) {
+                spinner.classList.add('hidden');
+                console.error('Address search error:', e);
+                errorEl.textContent = 'שגיאה בחיפוש: ' + e.message;
+                errorEl.classList.remove('hidden');
+            }
+        };
+
+        // Enter key triggers search
+        document.getElementById('addressSearchInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') searchAddress();
+        });
+
+        // Close on backdrop click
+        document.getElementById('addressSearchPopup').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeAddressSearch();
+        });
+
+        // Resize map once content is visible
+        setTimeout(() => { if (window.resizeMap) window.resizeMap(); }, 100);
+        setTimeout(() => { if (window.resizeMap) window.resizeMap(); }, 300);
+
+        // === Mobile bottom sheet toggle ===
+        window.toggleMobileSheet = function() {
+            const sheet = document.getElementById('mobileSheet');
+            const arrow = document.getElementById('sheetArrow');
+            const isOpen = sheet.dataset.open === 'true';
+            if (isOpen) {
+                sheet.style.transform = 'translateY(calc(100% - 52px))';
+                sheet.style.pointerEvents = 'none';
+                sheet.querySelector('#sheetHandle').style.pointerEvents = 'auto';
+                arrow.textContent = 'expand_less';
+                sheet.dataset.open = 'false';
+            } else {
+                // Populate mobile list on-demand from current data
+                const mobileList = document.getElementById('mobileSheetContent');
+                if (mobileList && mobileList.children.length === 0 && window.currentListApts && window.currentListApts.length > 0) {
+                    window.renderListBatch(mobileList, 0);
+                }
+                sheet.style.transform = 'translateY(0)';
+                sheet.style.pointerEvents = 'auto';
+                arrow.textContent = 'expand_more';
+                sheet.dataset.open = 'true';
+            }
+        };
+
+        // Keep old function name for compatibility
+        window.toggleMobileSidebar = window.toggleMobileSheet;
+
+        // === Mobile price filter sync ===
+        window.syncMobilePrice = function() {
+            document.getElementById('minPrice').value = document.getElementById('minPriceMobile').value;
+            document.getElementById('maxPrice').value = document.getElementById('maxPriceMobile').value;
+            if (window.debouncedApplyFilters) window.debouncedApplyFilters();
+        };
+
+        // === Mobile days filter dropdown ===
+        const daysFilterBtnMobile = document.getElementById('daysFilterBtnMobile');
+        const daysFilterDropdownMobile = document.getElementById('daysFilterDropdownMobile');
+        const daysFilterTextMobile = document.getElementById('daysFilterTextMobile');
+        const daysFilterArrowMobile = document.getElementById('daysFilterArrowMobile');
+        const dropdownOptionsMobile = document.querySelectorAll('.dropdown-option-mobile');
+
+        if (daysFilterBtnMobile) {
+            daysFilterBtnMobile.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const rect = daysFilterBtnMobile.getBoundingClientRect();
+                
+                // The dropdown is "w-44" in Tailwind, which equals exactly 176px
+                const dropdownWidth = 176; 
+                const margin = 12; // Keep it at least 12px away from the screen edge
+                
+                // Start by aligning it to the button's left edge
+                let leftPos = rect.left;
+
+                // Boundary Check 1: Spilling off the right edge? Push it left.
+                if (leftPos + dropdownWidth > window.innerWidth - margin) {
+                    leftPos = window.innerWidth - dropdownWidth - margin;
+                }
+                
+                // Boundary Check 2: Spilling off the left edge? Push it right.
+                if (leftPos < margin) {
+                    leftPos = margin;
+                }
+                
+                // Apply the safe coordinates
+                daysFilterDropdownMobile.style.top = (rect.bottom + 8) + 'px';
+                daysFilterDropdownMobile.style.left = leftPos + 'px';
+                daysFilterDropdownMobile.style.right = 'auto'; // Always clear right
+                
+                daysFilterDropdownMobile.classList.toggle('hidden');
+                daysFilterArrowMobile.classList.toggle('open');
+            });
+
+            dropdownOptionsMobile.forEach(option => {
+                option.addEventListener('click', () => {
+                    const value = option.dataset.value;
+                    const text = option.textContent;
+
+                    daysFilterInput.value = value;
+                    daysFilterTextMobile.textContent = text;
+                    daysFilterText.textContent = text + ' אחרונים';
+
+                    dropdownOptionsMobile.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    // Sync desktop dropdown selection
+                    dropdownOptions.forEach(opt => {
+                        opt.classList.toggle('selected', opt.dataset.value === value);
+                    });
+
+                    daysFilterDropdownMobile.classList.add('hidden');
+                    daysFilterArrowMobile.classList.remove('open');
+                    daysFilterInput.dispatchEvent(new Event('change'));
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!daysFilterBtnMobile.contains(e.target) && !daysFilterDropdownMobile.contains(e.target)) {
+                    daysFilterDropdownMobile.classList.add('hidden');
+                    daysFilterArrowMobile.classList.remove('open');
+                }
+            });
+        }
+
+        // === Mobile swipe gesture for bottom sheet ===
+        (function() {
+            const handle = document.getElementById('sheetHandle');
+            if (!handle) return;
+            let startY = 0;
+
+            handle.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+            }, { passive: true });
+
+            handle.addEventListener('touchend', (e) => {
+                const diff = startY - e.changedTouches[0].clientY;
+                const sheet = document.getElementById('mobileSheet');
+                const isOpen = sheet.dataset.open === 'true';
+                if (diff > 30 && !isOpen) toggleMobileSheet();
+                else if (diff < -30 && isOpen) toggleMobileSheet();
+            }, { passive: true });
+        })();
+    </script>
+
+    <script type="module" src="main.js?v=2"></script>
+    <script src="accessibility-widget.js"></script><button class="a11y-fab" aria-label="תפריט נגישות" title="נגישות" style="bottom: 173.167px; left: 16px;"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="4" r="2"></circle><path d="M19 13v-2c-1.54.02-3.09-.75-4.07-1.83l-1.29-1.43c-.17-.19-.38-.34-.61-.45-.01 0-.01-.01-.02-.01H13c-.35-.2-.75-.3-1.19-.26C10.76 7.11 10 8.04 10 9.09V15c0 1.1.9 2 2 2h5v5h2v-5.5c0-1.1-.9-2-2-2h-3v-3.45c1.29 1.07 3.25 1.94 5 1.95zm-6.17 5c-.41 1.16-1.52 2-2.83 2-1.66 0-3-1.34-3-3 0-1.31.84-2.41 2-2.83V12.1c-2.28.46-4 2.48-4 4.9 0 2.76 2.24 5 5 5 2.42 0 4.44-1.72 4.9-4h-2.07z"></path></svg></button><div class="a11y-panel" role="dialog" aria-label="הגדרות נגישות">
+        <div class="a11y-panel-header">
+            <div class="a11y-panel-header-icon">
+                <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">accessibility_new</span>
+            </div>
+            <div>
+                <div class="a11y-panel-title">הגדרות נגישות</div>
+                <div class="a11y-panel-subtitle">התאמת האתר לצרכים שלך</div>
+            </div>
+        </div>
+        <div class="a11y-panel-body">
+            <div class="a11y-font-controls">
+                <div class="a11y-option-icon">
+                    <span class="material-symbols-outlined">text_fields</span>
+                </div>
+                <div class="a11y-option-text">
+                    <div class="a11y-option-label">גודל טקסט</div>
+                </div>
+                <button class="a11y-font-btn" data-action="font-down" aria-label="הקטנת טקסט">−</button>
+                <span class="a11y-font-size-label">100%</span>
+                <button class="a11y-font-btn" data-action="font-up" aria-label="הגדלת טקסט">+</button>
+            </div>
+            <div class="a11y-option" data-feature="high-contrast" role="switch" tabindex="0" aria-checked="false">
+                <div class="a11y-option-icon">
+                    <span class="material-symbols-outlined">contrast</span>
+                </div>
+                <div class="a11y-option-text">
+                    <div class="a11y-option-label">ניגודיות גבוהה</div>
+                    <div class="a11y-option-desc">הגברת ניגודיות צבעים</div>
+                </div>
+            </div>
+            <div class="a11y-option" data-feature="highlight-links" role="switch" tabindex="0" aria-checked="false">
+                <div class="a11y-option-icon">
+                    <span class="material-symbols-outlined">link</span>
+                </div>
+                <div class="a11y-option-text">
+                    <div class="a11y-option-label">הדגשת קישורים</div>
+                    <div class="a11y-option-desc">סימון ברור של כל הקישורים</div>
+                </div>
+            </div>
+            <div class="a11y-option" data-feature="big-cursor" role="switch" tabindex="0" aria-checked="false">
+                <div class="a11y-option-icon">
+                    <span class="material-symbols-outlined">mouse</span>
+                </div>
+                <div class="a11y-option-text">
+                    <div class="a11y-option-label">סמן מוגדל</div>
+                    <div class="a11y-option-desc">הגדלת סמן העכבר</div>
+                </div>
+            </div>
+            <div class="a11y-option" data-feature="grayscale" role="switch" tabindex="0" aria-checked="false">
+                <div class="a11y-option-icon">
+                    <span class="material-symbols-outlined">filter_b_and_w</span>
+                </div>
+                <div class="a11y-option-text">
+                    <div class="a11y-option-label">גווני אפור</div>
+                    <div class="a11y-option-desc">הסרת צבעים מהאתר</div>
+                </div>
+            </div>
+            <div class="a11y-option" data-feature="reading-guide" role="switch" tabindex="0" aria-checked="false">
+                <div class="a11y-option-icon">
+                    <span class="material-symbols-outlined">straighten</span>
+                </div>
+                <div class="a11y-option-text">
+                    <div class="a11y-option-label">סרגל קריאה</div>
+                    <div class="a11y-option-desc">פס מדגיש שעוקב אחרי העכבר</div>
+                </div>
+            </div>
+            <button class="a11y-reset-btn" data-action="reset">
+                <span class="material-symbols-outlined" style="font-size:16px;">restart_alt</span>
+                איפוס הגדרות
+            </button>
+            <a href="accessibility.html" class="a11y-panel-link">
+                <span class="material-symbols-outlined" style="font-size:16px;">description</span>
+                הצהרת נגישות מלאה
+            </a>
+        </div>
+    </div><div class="a11y-reading-line"></div>
+    <style>.a11y-fab { bottom: 150px; } .a11y-panel { bottom: 214px; } @media (max-width: 768px) { .a11y-fab { bottom: 60px; } .a11y-panel { bottom: 124px; } }</style>
+
+
+<div id="fire_app_check_[DEFAULT]" style="display: none;"><div class="grecaptcha-badge" data-style="bottomright" style="width: 256px; height: 60px; display: block; transition: right 0.3s; position: fixed; bottom: 14px; right: -186px; box-shadow: gray 0px 0px 5px; border-radius: 2px; overflow: hidden;"><div class="grecaptcha-logo"><iframe title="reCAPTCHA" width="256" height="60" role="presentation" name="a-w45kmkitqsmr" frameborder="0" scrolling="no" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation allow-modals allow-popups-to-escape-sandbox allow-storage-access-by-user-activation" src="https://www.google.com/recaptcha/enterprise/anchor?ar=1&amp;k=6LeJmJIsAAAAADObHd98fWEQR580KD_xAgjc8Dv5&amp;co=aHR0cHM6Ly80a2lyb3QuY29tOjQ0Mw..&amp;hl=en&amp;v=ne1iDVwClkE7nKD3uA9Vqsvl&amp;size=invisible&amp;anchor-ms=20000&amp;execute-ms=30000&amp;cb=3jwizynemdb4"></iframe></div><div class="grecaptcha-error"></div><textarea id="g-recaptcha-response" name="g-recaptcha-response" class="g-recaptcha-response" style="width: 250px; height: 40px; border: 1px solid rgb(193, 193, 193); margin: 10px 25px; padding: 0px; resize: none; display: none;"></textarea></div><iframe style="display: none;"></iframe></div></body></html>

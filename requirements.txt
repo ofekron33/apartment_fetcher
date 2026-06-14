@@ -1,0 +1,6 @@
+httpx>=0.27.0
+beautifulsoup4>=4.12.0
+curl_cffi>=0.11.0
+undetected-chromedriver>=3.5.0
+setuptools
+requests>=2.31.0

@@ -1,0 +1,26 @@
+# Secrets
+config.json
+firebase_token.json
+
+# State files (persisted in the `state` branch by GitHub Actions)
+seen_listings.json
+seen_4kirot.json
+pagination_state.json
+cookies.pkl
+
+# Debug / temp output
+debug_*.json
+apartments.json
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+
+# Virtual environment
+.venv/
+
+# Chrome profile (undetected-chromedriver)
+chrome_profile/

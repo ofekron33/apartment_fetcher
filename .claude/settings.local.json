@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npm install:*)",
+      "Bash(gsd-sdk:*)",
+      "Bash(npm update:*)",
+      "WebSearch",
+      "Bash(set ANTHROPIC_MODEL=claude-fable-5-20260609)",
+      "WebFetch(domain:www.yad2.co.il)",
+      "Bash(dir:*)",
+      "WebFetch(domain:gw.yad2.co.il)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:apify.com)",
+      "WebFetch(domain:gist.github.com)",
+      "Bash(curl:*)",
+      "Bash(pip install:*)",
+      "Bash(ls:*)",
+      "Bash(python -c:*)",
+      "Bash(python main.py:*)",
+      "Bash(python tmp_pagination.py:*)",
+      "Bash(python tmp_sort.py:*)",
+      "Bash(python:*)",
+      "Bash(pip show:*)",
+      "WebFetch(domain:4kirot.com)",
+      "Bash(del \"C:\\\\Users\\\\ofekr\\\\PycharmProjects\\\\PythonProject3\\\\seen_listings.json\" \"C:\\\\Users\\\\ofekr\\\\PycharmProjects\\\\PythonProject3\\\\pagination_state.json\")",
+      "Bash(schtasks:*)",
+      "Bash(powershell -Command:*)"
+    ]
+  }
+}
