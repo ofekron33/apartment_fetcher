@@ -1,69 +1,72 @@
 # Apartment Alerts
 
-Aggregates rental listings from multiple sources and sends Telegram notifications for new apartments that match your criteria. Runs every 10-15 minutes via scheduled task.
+Aggregates rental listings from multiple sources and sends Telegram notifications for new apartments that match your criteria. Runs every 15 minutes via GitHub Actions.
 
 ## Sources
 
-### Yad2 (working)
+### Yad2
 
-1. **Scrape** (`scraper.py`) - Fetches the Yad2 search page using `curl_cffi` with Chrome TLS impersonation (falls back to `undetected-chromedriver`). Extracts the `__NEXT_DATA__` JSON from the page. Persists cookies between runs to avoid bot detection.
-2. **Parse** (`parser.py`) - Extracts listing data (price, rooms, floor, elevator, parking, address, etc.) from Yad2's category-based feed structure.
-3. **Deduplicate** (`state.py`) - Tracks seen listing IDs in `seen_listings.json` so you only get notified once per listing.
-4. **Filter & Score** (`scorer.py`) - Hard filters remove bad matches (e.g. high floor without elevator). Soft scoring ranks the rest by parking, low floor, room count, and price.
-5. **Notify** (`notifier.py`) - Sends each passing listing to Telegram via Bot API. Falls back to console output if Telegram isn't configured.
+Scrapes Yad2 search results using `curl_cffi` with Chrome TLS impersonation (falls back to `undetected-chromedriver`). Supports multi-page pagination with resume state.
 
-### 4kirot.com (in progress)
+### 4kirot.com
 
-Fetches apartment listings from 4kirot.com, which aggregates posts from Facebook apartment groups in the Tel Aviv area. Listings include address, price, geocoded coordinates, realtor/private flag, and original Facebook post link.
+Fetches apartment listings from 4kirot.com, which aggregates posts from Facebook apartment groups in the Tel Aviv area. Uses Firebase auth (refresh token) to call their API directly — no browser needed.
 
-- **`setup_token.py`** - One-time setup: opens a browser, user logs in with Gmail, extracts and saves a Firebase refresh token to `firebase_token.json`. Only needs to run once.
-- **`fetch_apartments.py`** - Pure API fetch, no browser needed. Uses the saved refresh token to get a fresh Firebase ID token, calls the `fetchapartments` Cloud Function, deduplicates against `seen_4kirot.json`, and returns only new listings.
+## Pipeline
 
-**Status:** API fetching and deduplication work. Still needed:
-- Filtering and scoring to match Yad2 criteria
-- Telegram notifications for new 4kirot listings
-- Unified pipeline in `main.py` that runs both sources
+1. **Scrape/Fetch** (`scraper.py`, `fetch_apartments.py`) — Collect listings from all sources
+2. **Parse** (`parser.py`) — Extract structured data (price, rooms, floor, elevator, parking, address, etc.)
+3. **Deduplicate** (`state.py`, `fetch_apartments.py`) — Track seen listing IDs so you only get notified once
+4. **Filter & Score** (`scorer.py`) — Hard filters remove bad matches, soft scoring ranks the rest
+5. **Enrich** — Fetch Yad2 detail pages for description, dates, expiry detection
+6. **Notify** (`notifier.py`) — Send each passing listing to Telegram via Bot API
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `main.py` | Entry point - orchestrates the pipeline |
+| `main.py` | Entry point — orchestrates the full pipeline |
 | `scraper.py` | Yad2 page fetching with anti-bot evasion |
 | `parser.py` | Raw JSON to `Listing` objects |
 | `models.py` | `Listing` and `ScoredListing` dataclasses |
 | `state.py` | Seen-listing deduplication (JSON file) |
 | `scorer.py` | Hard filters + soft scoring |
 | `notifier.py` | Telegram Bot API notifications |
-| `config.json` | All configuration (URL, filters, scoring, Telegram creds) |
-| `run_crawler.bat` | Bat file for Windows Task Scheduler (run every 15 min) |
+| `fetch_apartments.py` | 4kirot.com API fetcher with deduplication |
 | `setup_token.py` | One-time Firebase token extraction for 4kirot.com |
-| `fetch_apartments.py` | 4kirot.com API fetcher with deduplication (no browser) |
-| `firebase_token.json` | Saved Firebase refresh token (do not commit) |
-| `seen_4kirot.json` | Seen 4kirot listing IDs for deduplication |
+| `config.json` | All configuration (URL, filters, scoring, Telegram creds) — not committed |
 
 ## Setup
 
+### GitHub Actions (recommended)
+
+The scraper runs automatically every 15 minutes via GitHub Actions.
+
+1. Fork or clone this repo
+2. Run `setup_token.py` once locally to log in and generate `firebase_token.json`
+3. Add two repository secrets in **Settings > Secrets and variables > Actions**:
+   - `CONFIG_JSON` — contents of your `config.json`
+   - `FIREBASE_TOKEN_JSON` — contents of your `firebase_token.json`
+4. Push to GitHub — the workflow runs automatically on schedule
+
+State files (`seen_listings.json`, `seen_4kirot.json`, `pagination_state.json`, `firebase_token.json`) are persisted in a separate `state` git branch between runs.
+
+### Local
+
 ```
 pip install -r requirements.txt
-```
-
-Edit `config.json` with your Yad2 search URL and Telegram bot credentials.
-
-## Run
-
-```
 python main.py
 ```
 
-Or schedule `run_crawler.bat` with Windows Task Scheduler to run every 15 minutes.
+Or schedule `run_crawler.bat` with Windows Task Scheduler.
 
 ## Config
 
 All in `config.json`:
 
-- **yad2_url** - Yad2 search URL with your filters (area, rooms, price range)
-- **telegram.bot_token** / **telegram.chat_id** - Telegram Bot API credentials
-- **filters** - Hard filters (min rooms, max floor without elevator)
-- **scoring** - Point values for parking, low floor, 3+ rooms, price range
-- **debug** - Set `true` to dump raw feed data for troubleshooting
+- **yad2_url** — Yad2 search URL with your filters (area, rooms, price range)
+- **pagination.max_pages** — How many pages to scrape per run
+- **telegram.bot_token** / **telegram.chat_id** — Telegram Bot API credentials
+- **filters** — Hard filters (min rooms, max floor without elevator)
+- **scoring** — Point values for parking, low floor, 3+ rooms, price range
+- **debug** — Set `true` to dump raw feed data for troubleshooting
